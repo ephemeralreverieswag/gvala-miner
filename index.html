@@ -8,45 +8,55 @@
         body { background: #000; color: #d4af37; text-align: center; font-family: sans-serif; user-select: none; }
         .coin { 
             width: 220px; height: 220px; background: radial-gradient(#ffe600, #b8860b);
-            border-radius: 50%; margin: 50px auto; cursor: pointer;
+            border-radius: 50%; margin: 40px auto; cursor: pointer;
             box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
             display: flex; align-items: center; justify-content: center;
             font-size: 90px; transition: transform 0.05s; border: 5px solid #8b6508;
         }
-        .coin:active { transform: scale(0.92); }
-        .stats { font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #fff; }
-        .progress-bar { width: 80%; height: 12px; background: #222; margin: 20px auto; border-radius: 6px; overflow: hidden; border: 1px solid #d4af37; }
-        #fill { width: 0%; height: 100%; background: linear-gradient(to right, #ffd700, #fff); transition: width 0.1s; }
+        .coin:active { transform: scale(0.95); }
+        .stats { font-size: 26px; color: #fff; margin-top: 20px; font-weight: bold; }
+        .save-btn {
+            background: #d4af37; color: #000; border: none; padding: 15px 30px;
+            font-weight: bold; border-radius: 12px; font-size: 18px; cursor: pointer;
+            margin-top: 20px; width: 85%; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
     </style>
 </head>
 <body>
-    <h1 style="margin-top:20px;">GVALA MINER ⛏</h1>
-    <div class="stats">Баланс: <span id="gvala">0</span> 🪙</div>
-    <div class="progress-bar"><div id="fill"></div></div>
+    <div class="stats">БАЛАНС: <span id="gvala">0</span> 🪙</div>
     <div class="coin" id="clicker">💰</div>
     <p style="color: #888;">2 клика = 1 Гвала</p>
+    
+    <button class="save-btn" id="save">💾 ЗАБРАТЬ И ВЫЙТИ</button>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
+        
         let clicks = 0;
-        let gvala = 0;
+        let totalGvala = 0;
 
-        const btn = document.getElementById('clicker');
         const gvalaSpan = document.getElementById('gvala');
-        const fill = document.getElementById('fill');
+        const btn = document.getElementById('clicker');
+        const saveBtn = document.getElementById('save');
 
         btn.onclick = () => {
             clicks++;
-            let progress = (clicks % 2) * 50; // 2 клика: 0% -> 50% -> 100%
-            fill.style.width = (progress === 0 && clicks > 0 ? 100 : progress) + "%";
-
+            // ПРОВЕРКА НА 2 КЛИКА
             if (clicks % 2 === 0) {
-                gvala++;
-                gvalaSpan.innerText = gvala;
-                fill.style.width = "0%";
-                // Отправляем боту сигнал о заработке
-                tg.sendData(JSON.stringify({action: "click_earn", amount: 1}));
+                totalGvala++;
+                gvalaSpan.innerText = totalGvala;
+                // Легкая вибрация
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            }
+        };
+
+        saveBtn.onclick = () => {
+            if (totalGvala > 0) {
+                // Отправка боту БЕЗ АВТОМАТИЧЕСКОГО закрытия (через sendData окно всё равно закроется, но только один раз в конце)
+                tg.sendData(JSON.stringify({action: "click_earn", amount: totalGvala}));
+            } else {
+                tg.close();
             }
         };
     </script>
