@@ -37,7 +37,7 @@
         #balance-display { font-size: 64px; font-weight: 100; margin-top: 4vh; letter-spacing: -3px; }
         .currency { font-size: 18px; color: var(--accent); margin-left: 8px; font-weight: 800; }
 
-        .mining-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; }
+        .mining-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
         .coin {
             width: 220px; height: 220px;
             background: linear-gradient(135deg, #ffca28, #ff8f00);
@@ -46,6 +46,7 @@
             box-shadow: 0 0 50px rgba(255, 202, 40, 0.3);
             cursor: pointer; transition: transform 0.05s;
             -webkit-tap-highlight-color: transparent;
+            margin-bottom: 30px;
         }
         .coin:active { transform: scale(0.95); }
 
@@ -90,6 +91,20 @@
         .status-box { width: 100%; background: #080808; border: 1px solid #151515; border-radius: 18px; margin-top: 15px; padding: 18px; text-align: center; font-size: 11px; color: #333; }
 
         .btn-action { background: #fff; color: #000; border: none; padding: 18px; border-radius: 20px; font-weight: 900; width: 100%; font-size: 15px; text-transform: uppercase; cursor: pointer; }
+        
+        /* НОВАЯ КНОПКА СОХРАНЕНИЯ */
+        .btn-save { 
+            background: rgba(255,255,255,0.1); 
+            color: #fff; 
+            border: 1px solid var(--border); 
+            padding: 12px 25px; 
+            border-radius: 15px; 
+            font-weight: 800; 
+            font-size: 12px; 
+            text-transform: uppercase; 
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
 
         .nav-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80%; z-index: 1000; }
         .tab-bar { background: rgba(10,10,10,0.8); border-radius: 35px; display: flex; padding: 5px; border: 1px solid #151515; backdrop-filter: blur(20px); }
@@ -124,7 +139,10 @@
 
     <div id="p-clicker" class="content active">
         <div id="balance-display">0<span class="currency">GVALA</span></div>
-        <div class="mining-area"><div class="coin" onclick="mine()">G</div></div>
+        <div class="mining-area">
+            <div class="coin" onclick="mine()">G</div>
+            <button class="btn-save" onclick="saveAndExit()">💾 СОХРАНИТЬ И ВЫЙТИ</button>
+        </div>
     </div>
 
     <div id="p-cases" class="content">
@@ -176,13 +194,11 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // ЧИТАЕМ БАЛАНС ИЗ ПАРАМЕТРОВ URL (который передаст бот)
+        // СИНХРОНИЗАЦИЯ С БОТОМ ПРИ ВХОДЕ
         const urlParams = new URLSearchParams(window.location.search);
         let bal = parseInt(urlParams.get('bal')) || 0;
-        
         let selectedId = null;
 
-        // ШАНСЫ И ПРИЗЫ
         const CONFIG = {
             tgaik: { name: "ТЫ ГОВНО А Я КОРОЛЬ", price: 10000, prizes: [{v:100000, c:1}, {v:500, c:99}] },
             low: { name: "Обычный кейс", price: 5000, prizes: [{v:15000, c:5}, {v:4000, c:25}, {v:500, c:70}] },
@@ -190,21 +206,27 @@
             high: { name: "КЕЙС НИКИТЫ", price: 50000, prizes: [{v:250000, c:3}, {v:50000, c:27}, {v:10000, c:70}] }
         };
 
-        // ОТПРАВКА БАЛАНСА БОТУ ДЛЯ СОХРАНЕНИЯ
-        function syncBalance() {
-            tg.sendData(JSON.stringify({balance: bal}));
-        }
-
         function updateUI() { 
             document.getElementById('balance-display').innerHTML = bal.toLocaleString() + '<span class="currency">GVALA</span>'; 
         }
-        
         updateUI();
 
         function mine() { 
-            bal++; 
-            updateUI(); 
+            bal++; updateUI(); 
             if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        // КНОПКА СОХРАНЕНИЯ (ЕДИНСТВЕННЫЙ СПОСОБ ЗАКРЫТЬ С СОХРАНЕНИЕМ)
+        function saveAndExit() {
+            tg.sendData(JSON.stringify({balance: bal}));
+        }
+
+        function tab(id, el) {
+            // ВАЖНО: Мы НЕ вызываем здесь сохранение, чтобы приложение не закрывалось
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            document.querySelectorAll('.content').forEach(p => p.classList.remove('active'));
+            document.getElementById('p-' + id).classList.add('active');
         }
 
         function showPreview(id) {
@@ -238,8 +260,7 @@
             if(!winValue) winValue = sorted[sorted.length-1].v;
 
             const slider = document.getElementById('roulette-slider');
-            const winIdx = 45; 
-            const itemW = 160; 
+            const winIdx = 45; const itemW = 160; 
             
             let html = '';
             for(let i=0; i<65; i++) {
@@ -267,19 +288,8 @@
                 document.getElementById('win-display').style.display = 'flex';
                 document.getElementById('r-status').style.display = 'none';
                 bal += winValue; updateUI();
-                
-                syncBalance(); // Сохраняем выигрыш
-
                 if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
             }, 6200);
-        }
-
-        function tab(id, el) {
-            syncBalance(); // Сохраняем накликанное при переключении вкладок
-            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-            document.querySelectorAll('.content').forEach(p => p.classList.remove('active'));
-            document.getElementById('p-' + id).classList.add('active');
         }
     </script>
 </body>
