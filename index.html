@@ -1,64 +1,258 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>GVALA PREMIUM</title>
     <style>
-        body { background: #000; color: #d4af37; text-align: center; font-family: sans-serif; user-select: none; }
-        .coin { 
-            width: 220px; height: 220px; background: radial-gradient(#ffe600, #b8860b);
-            border-radius: 50%; margin: 40px auto; cursor: pointer;
-            box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 90px; transition: transform 0.05s; border: 5px solid #8b6508;
+        :root {
+            --accent: #ffca28;
+            --bg: #000;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --red: #ff1744;
+        }
+
+        body {
+            background: var(--bg); color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            margin: 0; padding: 0; overflow: hidden; height: 100vh;
+            -webkit-user-select: none; user-select: none;
+        }
+
+        /* ФОН С СИЯНИЕМ */
+        .glow-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; background: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #000 100%);
+        }
+        .blob {
+            position: absolute; width: 250px; height: 250px; border-radius: 50%;
+            filter: blur(80px); opacity: 0.15;
+        }
+        .blob-1 { background: var(--accent); top: -50px; left: -50px; }
+
+        .content { display: none; flex-direction: column; align-items: center; padding: 25px; height: 100vh; box-sizing: border-box; }
+        .content.active { display: flex; }
+
+        /* БАЛАНС */
+        #balance-display { font-size: 64px; font-weight: 100; margin-top: 4vh; letter-spacing: -3px; }
+        .currency { font-size: 18px; color: var(--accent); margin-left: 8px; font-weight: 800; }
+
+        /* КЛИКЕР */
+        .mining-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; }
+        .coin {
+            width: 220px; height: 220px;
+            background: linear-gradient(135deg, #ffca28, #ff8f00);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-size: 90px; font-weight: 900; color: rgba(0,0,0,0.15);
+            box-shadow: 0 0 50px rgba(255, 202, 40, 0.3);
+            cursor: pointer; transition: transform 0.05s;
         }
         .coin:active { transform: scale(0.95); }
-        .stats { font-size: 26px; color: #fff; margin-top: 20px; font-weight: bold; }
-        .save-btn {
-            background: #d4af37; color: #000; border: none; padding: 15px 30px;
-            font-weight: bold; border-radius: 12px; font-size: 18px; cursor: pointer;
-            margin-top: 20px; width: 85%; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+
+        /* КЕЙСЫ (КОМПАКТНЫЕ) */
+        .case-list { width: 100%; overflow-y: auto; padding-bottom: 140px; }
+        .case-item {
+            background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 20px; padding: 22px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer;
         }
+        .case-info h3 { margin: 0; font-size: 16px; text-transform: uppercase; }
+        .case-info p { margin: 6px 0 0; font-size: 12px; color: #666; font-weight: 600; }
+
+        /* ОКНА */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 5000; align-items: center; justify-content: center; 
+            flex-direction: column; backdrop-filter: blur(15px);
+        }
+        .preview-card {
+            width: 85%; background: #0a0a0a; border: 1px solid var(--border); 
+            border-radius: 30px; padding: 30px; text-align: center;
+        }
+        .prize-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 14px; }
+
+        /* РУЛЕТКА */
+        .roulette-window {
+            width: 100%; height: 140px; position: relative; overflow: hidden;
+            border-top: 1px solid #111; border-bottom: 1px solid #111; margin: 30px 0;
+        }
+        .roulette-slider { display: flex; position: absolute; left: 0; align-items: center; padding-left: 50%; transition: transform 7s cubic-bezier(0.1, 0, 0.1, 1); }
+        .roulette-item { 
+            min-width: 130px; height: 100px; margin: 0 12px; background: #0f0f0f; 
+            border: 1px solid #1a1a1a; border-radius: 20px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; font-weight: 900; 
+        }
+        .roulette-cursor { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--red); z-index: 10; transform: translateX(-50%); box-shadow: 0 0 15px var(--red); }
+
+        /* ИНФО (ТВОЙ ДИЗАЙН) */
+        .info-header { font-weight: 900; text-transform: uppercase; margin: 20px 0; font-size: 16px; letter-spacing: 2px; color: #fff; opacity: 0.8; }
+        .info-box { width: 100%; background: #080808; border: 1px solid #151515; border-radius: 20px; overflow: hidden; }
+        .info-item { padding: 18px 22px; border-bottom: 1px solid #151515; display: flex; justify-content: space-between; align-items: center; }
+        .info-label { font-size: 10px; color: #444; text-transform: uppercase; font-weight: 800; margin-bottom: 4px; }
+        .info-user { font-size: 14px; color: var(--accent); font-weight: 700; }
+        .status-box { width: 100%; background: #080808; border: 1px solid #151515; border-radius: 18px; margin-top: 15px; padding: 18px; text-align: center; font-size: 11px; color: #333; }
+
+        /* КНОПКИ */
+        .btn-action { background: #fff; color: #000; border: none; padding: 18px; border-radius: 20px; font-weight: 900; width: 100%; font-size: 15px; text-transform: uppercase; cursor: pointer; }
+
+        /* ТАБ БАР */
+        .nav-container { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80%; z-index: 1000; }
+        .tab-bar { background: rgba(10,10,10,0.8); border-radius: 35px; display: flex; padding: 5px; border: 1px solid #151515; backdrop-filter: blur(20px); }
+        .tab-item { flex: 1; text-align: center; padding: 12px 0; border-radius: 30px; color: #333; font-size: 22px; cursor: pointer; }
+        .tab-item.active { color: #fff; background: rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
-    <div class="stats">БАЛАНС: <span id="gvala">0</span> 🪙</div>
-    <div class="coin" id="clicker">💰</div>
-    <p style="color: #888;">2 клика = 1 Гвала</p>
-    
-    <button class="save-btn" id="save">💾 ЗАБРАТЬ И ВЫЙТИ</button>
+
+    <div class="glow-bg"><div class="blob blob-1"></div></div>
+
+    <div id="modal-preview" class="overlay">
+        <div class="preview-card">
+            <h2 id="pre-title" style="margin:0; font-size:20px;">CASE</h2>
+            <div id="pre-prizes" style="margin: 20px 0;"></div>
+            <button class="btn-action" onclick="confirmOpen()">ОТКРЫТЬ КЕЙС</button>
+            <button onclick="closeModal('modal-preview')" style="background:none; border:none; color:#444; margin-top:15px; font-weight:800; cursor:pointer;">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <div id="modal-roulette" class="overlay">
+        <div id="r-status" style="font-size:10px; letter-spacing:3px; color:#333; font-weight:900; margin-bottom:10px;">GENERATING LUCK...</div>
+        <div class="roulette-window">
+            <div class="roulette-cursor"></div>
+            <div id="roulette-slider" class="roulette-slider"></div>
+        </div>
+        <div id="win-display" style="display:none; flex-direction: column; align-items: center;">
+            <div style="color:var(--accent); font-size: 32px; font-weight: 900;" id="win-sum"></div>
+            <button class="btn-action" style="width:auto; padding: 15px 50px; margin-top:20px;" onclick="closeModal('modal-roulette')">ЗАБРАТЬ</button>
+        </div>
+    </div>
+
+    <div id="p-clicker" class="content active">
+        <div id="balance-display">0<span class="currency">GVALA</span></div>
+        <div class="mining-area"><div class="coin" onclick="mine()">G</div></div>
+    </div>
+
+    <div id="p-cases" class="content">
+        <h2 style="align-self:flex-start; font-weight:200; font-size:32px; margin-bottom:20px;">Cases</h2>
+        <div class="case-list">
+            <div class="case-item" style="border-color:var(--red)" onclick="showPreview('tgaik')">
+                <div class="case-info"><h3 style="color:var(--red)">ТЫ ГОВНО А Я КОРОЛЬ</h3><p>Цена: 10,000</p></div>
+                <span>➔</span>
+            </div>
+            <div class="case-item" onclick="showPreview('low')">
+                <div class="case-info"><h3>Обычный кейс</h3><p>Цена: 5,000</p></div>
+                <span>➔</span>
+            </div>
+            <div class="case-item" onclick="showPreview('mid')">
+                <div class="case-info"><h3>Редкий кейс</h3><p>Цена: 10,000</p></div>
+                <span>➔</span>
+            </div>
+            <div class="case-item" style="border-color:var(--accent)" onclick="showPreview('high')">
+                <div class="case-info"><h3 style="color:var(--accent)">КЕЙС НИКИТЫ</h3><p>Цена: 50,000</p></div>
+                <span>➔</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="p-info" class="content">
+        <div class="info-header">📂 О ПРОЕКТЕ</div>
+        <div class="info-box">
+            <div class="info-item">
+                <div><div class="info-label">Разработчик</div><div class="info-user">@rockstartag</div></div>
+                <div>💻</div>
+            </div>
+            <div class="info-item" style="border:none">
+                <div><div class="info-label">Тестировщик</div><div class="info-user">@Blasphemateur</div></div>
+                <div>🧪</div>
+            </div>
+        </div>
+        <div class="status-box">Admin ID: 364305752 | v1.0.4b</div>
+    </div>
+
+    <div class="nav-container">
+        <div class="tab-bar">
+            <div class="tab-item active" onclick="tab('clicker', this)">⛏</div>
+            <div class="tab-item" onclick="tab('cases', this)">📦</div>
+            <div class="tab-item" onclick="tab('info', this)">📂</div>
+        </div>
+    </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
+        let bal = 0;
+        let selectedId = null;
+
+        const CONFIG = {
+            tgaik: { name: "ТЫ ГОВНО А Я КОРОЛЬ", price: 10000, prizes: [{v:100000, c:2}, {v:500, c:98}] },
+            low: { name: "Обычный кейс", price: 5000, prizes: [{v:15000, c:10}, {v:5000, c:30}, {v:500, c:60}] },
+            mid: { name: "Редкий кейс", price: 10000, prizes: [{v:30000, c:10}, {v:10000, c:30}, {v:2000, c:60}] },
+            high: { name: "КЕЙС НИКИТЫ", price: 50000, prizes: [{v:250000, c:5}, {v:50000, c:35}, {v:10000, c:60}] }
+        };
+
+        function updateUI() { document.getElementById('balance-display').innerHTML = bal.toLocaleString() + '<span class="currency">GVALA</span>'; }
         
-        let clicks = 0;
-        let totalGvala = 0;
+        function mine() { bal++; updateUI(); }
 
-        const gvalaSpan = document.getElementById('gvala');
-        const btn = document.getElementById('clicker');
-        const saveBtn = document.getElementById('save');
+        function showPreview(id) {
+            selectedId = id;
+            const c = CONFIG[id];
+            document.getElementById('pre-title').innerText = c.name;
+            let h = '';
+            c.prizes.forEach(p => h += `<div class="prize-row"><span>${p.v.toLocaleString()} GVALA</span><span style="color:var(--accent)">${p.c}%</span></div>`);
+            document.getElementById('pre-prizes').innerHTML = h;
+            document.getElementById('modal-preview').style.display = 'flex';
+        }
 
-        btn.onclick = () => {
-            clicks++;
-            // ПРОВЕРКА НА 2 КЛИКА
-            if (clicks % 2 === 0) {
-                totalGvala++;
-                gvalaSpan.innerText = totalGvala;
-                // Легкая вибрация
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            }
-        };
+        // ЭТА ФУНКЦИЯ ТЕПЕРЬ ТОЧНО СРАБОТАЕТ
+        function confirmOpen() {
+            if(!selectedId) return;
+            const c = CONFIG[selectedId];
+            if(bal < c.price) { alert("Недостаточно GVALA!"); return; }
+            
+            closeModal('modal-preview');
+            startRoulette(selectedId);
+        }
 
-        saveBtn.onclick = () => {
-            if (totalGvala > 0) {
-                // Отправка боту БЕЗ АВТОМАТИЧЕСКОГО закрытия (через sendData окно всё равно закроется, но только один раз в конце)
-                tg.sendData(JSON.stringify({action: "click_earn", amount: totalGvala}));
-            } else {
-                tg.close();
-            }
-        };
+        function startRoulette(id) {
+            const c = CONFIG[id];
+            bal -= c.price; updateUI();
+
+            let r = Math.random() * 100, winValue = 0, cur = 0;
+            for(let p of c.prizes) { cur += p.c; if(r <= cur) { winValue = p.v; break; } }
+
+            const slider = document.getElementById('roulette-slider');
+            const items = [];
+            for(let i=0; i<60; i++) items.push(i === 50 ? winValue : c.prizes[Math.floor(Math.random()*c.prizes.length)].v);
+
+            document.getElementById('modal-roulette').style.display = 'flex';
+            document.getElementById('win-display').style.display = 'none';
+            document.getElementById('r-status').style.display = 'block';
+            slider.style.transition = 'none';
+            slider.style.transform = 'translateX(0)';
+            slider.innerHTML = items.map(v => `<div class="roulette-item"><span style="font-size:10px;color:#333;">GVALA</span>${v.toLocaleString()}</div>`).join('');
+
+            setTimeout(() => {
+                slider.style.transition = 'transform 6s cubic-bezier(0.1, 0, 0.1, 1)';
+                slider.style.transform = `translateX(-${50 * 154}px)`;
+            }, 50);
+
+            setTimeout(() => {
+                document.getElementById('win-sum').innerText = winValue.toLocaleString() + " GVALA";
+                document.getElementById('win-display').style.display = 'flex';
+                document.getElementById('r-status').style.display = 'none';
+                bal += winValue; updateUI();
+            }, 6200);
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function tab(id, el) {
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            document.querySelectorAll('.content').forEach(p => p.classList.remove('active'));
+            document.getElementById('p-' + id).classList.add('active');
+        }
     </script>
 </body>
 </html>
