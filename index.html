@@ -92,7 +92,6 @@
 
         .btn-action { background: #fff; color: #000; border: none; padding: 18px; border-radius: 20px; font-weight: 900; width: 100%; font-size: 15px; text-transform: uppercase; cursor: pointer; }
         
-        /* НОВАЯ КНОПКА СОХРАНЕНИЯ */
         .btn-save { 
             background: rgba(255,255,255,0.1); 
             color: #fff; 
@@ -133,7 +132,7 @@
         </div>
         <div id="win-display" style="display:none; flex-direction: column; align-items: center;">
             <div style="color:var(--accent); font-size: 32px; font-weight: 900;" id="win-sum"></div>
-            <button class="btn-action" style="width:auto; padding: 15px 50px; margin-top:20px;" onclick="closeModal('modal-roulette')">ЗАБРАТЬ</button>
+            <div style="color:#555; font-size:10px; margin-top:5px; font-weight:bold;">БАЛАНС СОХРАНЕН</div>
         </div>
     </div>
 
@@ -194,7 +193,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // СИНХРОНИЗАЦИЯ С БОТОМ ПРИ ВХОДЕ
+        // Читаем баланс из URL (переданного ботом)
         const urlParams = new URLSearchParams(window.location.search);
         let bal = parseInt(urlParams.get('bal')) || 0;
         let selectedId = null;
@@ -216,13 +215,12 @@
             if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
 
-        // КНОПКА СОХРАНЕНИЯ (ЕДИНСТВЕННЫЙ СПОСОБ ЗАКРЫТЬ С СОХРАНЕНИЕМ)
+        // Кнопка сохранения для кликера
         function saveAndExit() {
             tg.sendData(JSON.stringify({balance: bal}));
         }
 
         function tab(id, el) {
-            // ВАЖНО: Мы НЕ вызываем здесь сохранение, чтобы приложение не закрывалось
             document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
             document.querySelectorAll('.content').forEach(p => p.classList.remove('active'));
@@ -252,7 +250,8 @@
 
         function startRoulette(id) {
             const c = CONFIG[id];
-            bal -= c.price; updateUI();
+            bal -= c.price; 
+            updateUI();
 
             let r = Math.random() * 100, winValue = 0, cur = 0;
             const sorted = [...c.prizes].sort((a,b)=>a.c-b.c);
@@ -284,11 +283,22 @@
             }, 50);
 
             setTimeout(() => {
+                // Фиксируем выигрыш
+                bal += winValue;
+                updateUI();
+                
                 document.getElementById('win-sum').innerText = winValue.toLocaleString() + " GVALA";
                 document.getElementById('win-display').style.display = 'flex';
                 document.getElementById('r-status').style.display = 'none';
-                bal += winValue; updateUI();
+                
                 if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+                // ЗАЩИТА ОТ ДЮПА: 
+                // Баланс отправляется боту автоматически и приложение закрывается через 1.5 сек после выигрыша.
+                setTimeout(() => {
+                    saveAndExit();
+                }, 1500);
+
             }, 6200);
         }
     </script>
